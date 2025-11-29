@@ -36,16 +36,21 @@ jobs:
 
       - name: 2. 创建 RDP 用户 (使用 GitHub Secret 密码)
         run: |
+          # 导入 System.Security 程序集，用于安全字符串处理
           Add-Type -AssemblyName System.Security
           
-          # 安全地从 GitHub Secret 中获取固定密码
-          $passwordSecret = "${{ secrets.RDP_USER_PASSWORD }}"
-          $securePass = ConvertTo-SecureString $passwordSecret -AsPlainText -Force
+          # 1. 从 GitHub Secret 中获取密码字符串
+          # 此行在日志中会被屏蔽为 ***
+          $passwordString = "${{ secrets.RDP_USER_PASSWORD }}"
           
-          # 创建本地用户 "RDP"，并使用注入的 Secret 密码
+          # 2. 将普通字符串转换为安全字符串 (SecureString)，这是 New-LocalUser 命令所要求的格式
+          $securePass = ConvertTo-SecureString $passwordString -AsPlainText -Force
+          
+          # 3. 创建本地用户 "RDP"
+          # 必须包含 -Password 参数，并将 $securePass 作为值传入
           New-LocalUser -Name "RDP" -Password $securePass -AccountNeverExpires
           
-          # 将用户添加到 Administrators 和 Remote Desktop Users 组
+          # 4. 将用户添加到 Administrators 和 Remote Desktop Users 组
           Add-LocalGroupMember -Group "Administrators" -Member "RDP"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "RDP"
           
