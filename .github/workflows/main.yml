@@ -2,8 +2,8 @@ name: RDP
 # 中文名称: 远程桌面协议
 
 on:
-  # 允许手动触发工作流
-  workflow_dispatch:
+  # 允许手动触发工作流
+  workflow_dispatch:
 
 jobs:
   secure-rdp:
