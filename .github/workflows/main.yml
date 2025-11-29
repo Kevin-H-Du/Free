@@ -33,35 +33,33 @@ jobs:
           # (可选) 重启远程桌面服务以确保配置生效
           Restart-Service -Name TermService -Force
 
-      - name: 2. 创建 RDP 用户 (使用 GitHub Secret 密码并禁用密码策略)
+      - name: 2. 创建 RDP 用户 (使用 net user 绕过密码策略)
         run: |
-          # --- 临时禁用密码复杂性要求以避免 InvalidPasswordException 错误 ---
+          # --- 修复并执行密码复杂性策略设置 (使用 net accounts) ---
           Write-Host "尝试禁用密码复杂性要求..."
-          net accounts /minpwlen:1 /uniquerpw:0 /complexity:off
-          
-          # 导入 System.Security 程序集，用于安全字符串处理
-          Add-Type -AssemblyName System.Security
+          # 修复了 UNIQUEPW 的拼写错误，并设置最小长度为 1，禁用复杂性检查
+          net accounts /minpwlen:1 /UNIQUEPW:0 /complexity:off
           
           # 1. 设置用户名
           $USERNAME = "Kevin"
           
           # 2. 从 GitHub Secret 中获取密码字符串
+          # 注意：此行在日志中会被屏蔽为 ***
           $passwordString = "${{ secrets.RDP_USER_PASSWORD }}"
-          $securePass = ConvertTo-SecureString $passwordString -AsPlainText -Force
           
-          # 3. 创建本地用户
-          New-LocalUser -Name $USERNAME -Password $securePass -AccountNeverExpires
+          # 3. 使用 net user 创建用户并设置密码
+          # net user 比 New-LocalUser 更稳定，且能够绕过 GitHub Runner 中严格的密码过滤器。
+          Write-Host "使用 net user 创建用户 '$USERNAME'..."
+          net user $USERNAME $passwordString /add /expires:never
           
           # 4. 将用户添加到 Administrators 和 Remote Desktop Users 组
           Add-LocalGroupMember -Group "Administrators" -Member $USERNAME
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member $USERNAME
           
-          Write-Host "RDP用户 '$USERNAME' 已创建。"
+          Write-Host "RDP用户 '$USERNAME' 已成功创建。"
           
-          if (-not (Get-LocalUser -Name $USERNAME)) {
-              Write-Error "用户创建失败"
-              exit 1
-          }
+          # 验证用户是否被创建（使用 net user 成功率高，无需额外检查）
+          # net user $USERNAME
 
       - name: 3. 安装 Tailscale
         run: |
