@@ -79,7 +79,7 @@ jobs:
           Set-WinUserLanguageList -LanguageList $lang -Force
           Set-WinDefaultInputMethodOverride -InputTip $kbLayout
           
-          # --- 4. 复制到新用户和欢迎屏幕 (重要：确保 RDP 登录时生效) ---
+          # --- 4. 复制到新用户和欢迎屏幕 (确保 RDP 登录时生效) ---
           $sourceKey = "HKCU:\Control Panel\International"
           $targetKey = "HKU\.DEFAULT\Control Panel\International"
           
@@ -87,7 +87,7 @@ jobs:
               $name = $_.PSChildName
               Copy-Item -Path "$sourceKey\$name" -Destination "$targetKey\$name" -Recurse -Force -ErrorAction SilentlyContinue
           }
-          [void](Set-WinCultureFromLanguageList -LanguageList ($lang))
+          # [已移除] 移除无法识别的命令： [void](Set-WinCultureFromLanguageList -LanguageList ($lang))
           
           Write-Host "中文语言、区域和输入法配置已完成。"
           Restart-Service -Name TermService -Force # 重启 RDP 服务
